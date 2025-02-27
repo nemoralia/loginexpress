@@ -51,11 +51,11 @@ try {
 
 app.get("/validar", (req, res) => {
     if(req.session.usuario){
-        res.status(200).send("Sesion Validada")
+        res.status(200).json({ usuario: req.session.usuario });
     }else{
         res.status(401).send("Sesion no validada");
-        }
-})
+    }
+});
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
