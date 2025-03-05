@@ -63,6 +63,37 @@ app.post("/logout", (req, res) => {
   });
 });
 
+app.get("/registro", async (req, res) => {
+  const datos = req.query;
+  try {
+    // Verifica si el usuario ya existe
+    const [existingUser] = await connection.query(
+      "SELECT * FROM `usuarios` WHERE `usuario` = ?",
+      [datos.usuario]
+    );
+
+    if (existingUser.length > 0) {
+      return res.status(409).send("El usuario ya existe");
+    }
+
+    // Inserta el nuevo usuario en la base de datos
+    const [results] = await connection.query(
+      "INSERT INTO `usuarios` (`usuario`, `clave`, `nombre`, `apellido`, `telefono`, `direccion`, `fecha_nacimiento`) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [datos.usuario, datos.clave, datos.nombre, datos.apellido, datos.telefono, datos.direccion, datos.fecha_nacimiento]
+    );
+
+    if (results.affectedRows > 0) {
+      req.session.usuario = datos.usuario;
+      res.status(200).send("Registro exitoso");
+    } else {
+      res.status(500).send("Error en el registro");
+    }
+  } catch (err) {
+    console.log(err);
+    res.status(500).send("Error en el servidor");
+  }
+});
+
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
