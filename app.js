@@ -97,3 +97,13 @@ app.get("/registro", async (req, res) => {
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
+
+app.get("/productos", async (req, res) => {
+  try {
+    const [results] = await connection.query("SELECT * FROM `productos`");
+    res.status(200).json(results);
+  } catch (err) {
+    console.log(err);
+    res.status(500).send("Error al obtener los productos");
+  }
+});
