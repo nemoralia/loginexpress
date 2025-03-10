@@ -64,6 +64,11 @@ app.post("/logout", (req, res) => {
 });
 
 app.get("/registro", async (req, res) => {
+  if (!req.session.usuario) {
+    res.status(401).json({ error: "No autorizado" });
+    return;
+  } 
+
   const datos = req.query;
   try {
     // Verifica si el usuario ya existe
@@ -94,6 +99,7 @@ app.get("/registro", async (req, res) => {
   }
 });
 
+
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
@@ -105,5 +111,48 @@ app.get("/productos", async (req, res) => {
   } catch (err) {
     console.log(err);
     res.status(500).send("Error al obtener los productos");
+  }
+});
+
+app.get("/productos", async (req, res) => {
+
+  try {
+    const [results , fields] = await connection.query(
+      "SELECT * FROM `productos`",
+    );
+
+  res.status(200).json(results);
+
+  console.log(results);
+  console.log(fields);
+  } catch (err) {
+    console.log(err);
+    res.status(500).send("Error al obtener los productos");
+  }
+});
+
+app.delete("/productos", async (req, res) => {
+  if (!req.session.usuario) {
+    res.status(401).json({ error: "No autorizado" });
+    return;
+  }
+
+  const datos = req.query;
+
+  try {
+    const [results] = await connection.query(
+      "DELETE FROM `productos` WHERE `id` = ?",
+      [datos.id]
+    );
+
+    if (results.affectedRows > 0) {
+      res.status(200).send("Producto eliminado");
+    } else {
+      res.status(404).send("Producto no encontrado");
+    }
+    console.log(results);
+  } catch (err) {
+    console.log(err);
+    res.status(500).send("Error al eliminar el producto");
   }
 });
