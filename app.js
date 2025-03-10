@@ -4,6 +4,11 @@ const port = 3000;
 const cors = require('cors');
 const mysql = require('mysql2/promise');
 const session = require('express-session');
+const md5 = require('md5');
+
+// Middleware para analizar JSON y datos de formularios
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.use(cors({
   origin: 'http://localhost:5173',
@@ -33,7 +38,7 @@ app.get("/login", async (req, res) => {
   try {
     const [results, fields] = await connection.query(
       "SELECT * FROM `usuarios` WHERE `usuario` = ? AND `clave` = ?",
-      [datos.usuario, datos.clave]
+      [datos.usuario, md5(datos.clave)]
     );
     if (results.length > 0) {
       req.session.usuario = datos.usuario;
@@ -81,10 +86,13 @@ app.get("/registro", async (req, res) => {
       return res.status(409).send("El usuario ya existe");
     }
 
+    // Cifra la contraseña antes de almacenarla
+    const hashedPassword = md5(datos.clave);
+
     // Inserta el nuevo usuario en la base de datos
     const [results] = await connection.query(
       "INSERT INTO `usuarios` (`usuario`, `clave`, `nombre`, `apellido`, `telefono`, `direccion`, `fecha_nacimiento`) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      [datos.usuario, datos.clave, datos.nombre, datos.apellido, datos.telefono, datos.direccion, datos.fecha_nacimiento]
+      [datos.usuario, hashedPassword, datos.nombre, datos.apellido, datos.telefono, datos.direccion, datos.fecha_nacimiento]
     );
 
     if (results.affectedRows > 0) {
@@ -99,7 +107,6 @@ app.get("/registro", async (req, res) => {
   }
 });
 
-
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
@@ -108,23 +115,6 @@ app.get("/productos", async (req, res) => {
   try {
     const [results] = await connection.query("SELECT * FROM `productos`");
     res.status(200).json(results);
-  } catch (err) {
-    console.log(err);
-    res.status(500).send("Error al obtener los productos");
-  }
-});
-
-app.get("/productos", async (req, res) => {
-
-  try {
-    const [results , fields] = await connection.query(
-      "SELECT * FROM `productos`",
-    );
-
-  res.status(200).json(results);
-
-  console.log(results);
-  console.log(fields);
   } catch (err) {
     console.log(err);
     res.status(500).send("Error al obtener los productos");
@@ -154,5 +144,31 @@ app.delete("/productos", async (req, res) => {
   } catch (err) {
     console.log(err);
     res.status(500).send("Error al eliminar el producto");
+  }
+});
+
+app.post("/productos", async (req, res) => {
+  if (!req.session.usuario) {
+    res.status(401).json({ error: "No autorizado" });
+    return;
+  }
+
+  const { nombre, precio, caracteristicas, imagen } = req.body;
+
+  try {
+    const [results] = await connection.query(
+      "INSERT INTO `productos` (`nombre`, `precio`, `caracteristicas`, `imagen`) VALUES (?, ?, ?, ?)",
+      [nombre, precio, caracteristicas, imagen]
+    );
+
+    if (results.affectedRows > 0) {
+      const [producto] = await connection.query("SELECT * FROM `productos` WHERE `id` = ?", [results.insertId]);
+      res.status(200).json(producto[0]);
+    } else {
+      res.status(500).send("Error al agregar el producto");
+    }
+  } catch (err) {
+    console.log(err);
+    res.status(500).send("Error en el servidor");
   }
 });
