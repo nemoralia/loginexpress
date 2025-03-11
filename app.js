@@ -1,9 +1,16 @@
+// Importa el módulo de Express
 const express = require("express");
+// Crea una instancia de Express
 const app = express();
+// Puerto en el que se ejecutará el servidor
 const port = 3000;
+// Importa el módulo de CORS
 const cors = require('cors');
+// Importa el módulo de MySQL
 const mysql = require('mysql2/promise');
+// Importa el módulo de sesiones
 const session = require('express-session');
+// Importa el módulo de cifrado MD5
 const md5 = require('md5');
 
 // Middleware para analizar JSON y datos de formularios
@@ -19,10 +26,10 @@ app.use(session({
   secret: "12345",
   resave: false,
   saveUninitialized: true,
-  cookie: { secure: false } // Asegúrate de que secure esté en false para desarrollo
+  cookie: { secure: false } 
 }));
 
-// Create the connection to database
+// Crea la conexión a la base de datos.
 const connection = mysql.createPool({
   host: 'localhost',
   user: 'root',
@@ -33,6 +40,7 @@ app.get("/", (req, res) => {
   res.send("Inicio");
 });
 
+// Ruta para iniciar sesión
 app.get("/login", async (req, res) => {
   const datos = req.query;
   try {
@@ -51,6 +59,7 @@ app.get("/login", async (req, res) => {
   }
 });
 
+// Valida si el usuario está autenticado
 app.get("/validar", (req, res) => {
   if (req.session.usuario) {
     res.status(200).json({ usuario: req.session.usuario });
@@ -59,6 +68,7 @@ app.get("/validar", (req, res) => {
   }
 });
 
+// Ruta para cerrar sesión
 app.post("/logout", (req, res) => {
   req.session.destroy((err) => {
     if (err) {
@@ -68,6 +78,7 @@ app.post("/logout", (req, res) => {
   });
 });
 
+// Ruta para registrar un nuevo usuario
 app.get("/registro", async (req, res) => {
   const datos = req.query;
   try {
@@ -89,7 +100,7 @@ app.get("/registro", async (req, res) => {
       "INSERT INTO `usuarios` (`usuario`, `clave`, `nombre`, `apellido`, `telefono`, `direccion`, `fecha_nacimiento`) VALUES (?, ?, ?, ?, ?, ?, ?)",
       [datos.usuario, hashedPassword, datos.nombre, datos.apellido, datos.telefono, datos.direccion, datos.fecha_nacimiento]
     );
-
+    // Verifica si se insertó el usuario
     if (results.affectedRows > 0) {
       req.session.usuario = datos.usuario;
       res.status(200).send("Registro exitoso");
@@ -101,11 +112,12 @@ app.get("/registro", async (req, res) => {
     res.status(500).send("Error en el servidor");
   }
 });
-
+// Inicia el servidor en el puerto 3000
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
 
+// Ruta para obtener los productos
 app.get("/productos", async (req, res) => {
   try {
     const [results] = await connection.query("SELECT * FROM `productos`");
@@ -116,6 +128,7 @@ app.get("/productos", async (req, res) => {
   }
 });
 
+// Ruta para obtener un producto por su ID
 app.delete("/productos", async (req, res) => {
   if (!req.session.usuario) {
     res.status(401).json({ error: "No autorizado" });
@@ -142,6 +155,7 @@ app.delete("/productos", async (req, res) => {
   }
 });
 
+// Ruta para agregar un producto
 app.post("/productos", async (req, res) => {
   if (!req.session.usuario) {
     res.status(401).json({ error: "No autorizado" });
