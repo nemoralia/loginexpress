@@ -69,11 +69,6 @@ app.post("/logout", (req, res) => {
 });
 
 app.get("/registro", async (req, res) => {
-  if (!req.session.usuario) {
-    res.status(401).json({ error: "No autorizado" });
-    return;
-  } 
-
   const datos = req.query;
   try {
     // Verifica si el usuario ya existe
